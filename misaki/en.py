@@ -8,6 +8,7 @@ import json
 import numpy as np
 import re
 import spacy
+from spacy.lang.char_classes import ALPHA_UPPER
 import unicodedata
 from transformers import BartForConditionalGeneration
 import torch
@@ -527,6 +528,10 @@ class G2P:
             spacy.cli.download(name)
         components = ['transformer' if trf else 'tok2vec', 'tagger']
         self.nlp = spacy.load(name, enable=components)
+        # spaCy keeps a full stop after one capital (an initial, as in "J."),
+        # but in "AT&T." the capital is part of the name, so split it off.
+        suffixes = list(self.nlp.Defaults.suffixes) + [rf'(?<=&[{ALPHA_UPPER}])\.']
+        self.nlp.tokenizer.suffix_search = spacy.util.compile_suffix_regex(suffixes).search
         self.lexicon = Lexicon(british)
         self.fallback = fallback if fallback else FallbackNetwork(british)
         self.unk = unk
